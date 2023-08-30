@@ -2,23 +2,28 @@ from django.forms import model_to_dict
 from rest_framework import generics, viewsets
 from django.shortcuts import render
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Women, Category
+from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
 from .serializer import WomenSerializer
 
 
-class WomenViewSet(viewsets.ModelViewSet):
+class WomenAPIList(generics.ListCreateAPIView):  # get
+    queryset = Women.objects.all()
     serializer_class = WomenSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)  # Добавление статей только для авторизованных
 
-    def get_queryset(self):
-        pk = self.kwargs.get("pk")
-        if not pk:
-            return Women.objects.all()[:3]
-        return Women.objects.filter(pk=pk)
-    @action(methods=["get"], detail=True)
-    def category(self, request, pk):
-        cats = Category.objects.get(pk=pk)
-        return Response({"cats": cats.name})
 
+class WomenAPIUpdate(generics.RetrieveUpdateAPIView):  # изменяет только автор
+    queryset = Women.objects.all()
+    serializer_class = WomenSerializer
+    permission_classes = (IsOwnerOrReadOnly,)  # изменяет только автор
+
+
+class WomenAPIDestroy(generics.RetrieveDestroyAPIView):  # delete
+    queryset = Women.objects.all()
+    serializer_class = WomenSerializer
+    permission_classes = (IsAdminOrReadOnly,)  # удаляет статьи только админ
